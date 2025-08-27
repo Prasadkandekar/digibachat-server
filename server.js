@@ -9,7 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const OTP = require('./modals/OTP');
 const passwordRoutes = require('./routes/password');
 const PasswordResetToken = require('./modals/PasswordResetToken');
-const BlacklistedToken = require('./models/BlacklistedToken');
+const BlacklistedToken = require('./modals/BlackListedTokens');
 
 const app = express();
 

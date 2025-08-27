@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../modals/User');
 const { createOTP, verifyOTP } = require('../services/otpService');
 const { sendOTPEmail } = require('../services/emailService');
-const BlacklistedToken = require('../models/BlacklistedToken');
+const BlacklistedToken = require('../modals/BlackListedTokens');
 
 // Register user
 const register = async (req, res) => {

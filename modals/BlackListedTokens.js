@@ -1,4 +1,4 @@
-const pool = require('../config/database');
+const pool = require('../config/neondb');
 
 const BlacklistedToken = {
   // Add token to blacklist

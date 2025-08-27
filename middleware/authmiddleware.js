@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const BlacklistedToken = require('../models/BlacklistedToken');
+const User = require('../modals/User');
+const BlacklistedToken = require('../modals/BlackListedTokens');
 
 const auth = async (req, res, next) => {
   try {

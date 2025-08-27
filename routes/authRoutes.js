@@ -13,7 +13,7 @@ const {
   validateLogin,
   validateOTP
 } = require('../middleware/validation');
-const auth = require('../middleware/auth'); 
+const auth = require('../middleware/authmiddleware'); 
 // Register route
 router.post('/register', validateRegistration, register);
 

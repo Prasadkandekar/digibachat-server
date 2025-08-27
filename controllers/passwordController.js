@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const PasswordResetToken = require('../models/PasswordResetToken');
+const User = require('../modals/User');
+const PasswordResetToken = require('../modals/PasswordResetToken');
 const { generateResetToken } = require('../services/tokenService');
 const { sendPasswordResetEmail } = require('../services/emailService');
 
