@@ -10,6 +10,7 @@ const OTP = require('./modals/OTP');
 const passwordRoutes = require('./routes/password');
 const PasswordResetToken = require('./modals/PasswordResetToken');
 const BlacklistedToken = require('./modals/BlackListedTokens');
+const groupRoutes = require('./routes/groupRoutes');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/password',passwordRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
