@@ -8,12 +8,15 @@ const BlacklistedToken = require('../modals/BlackListedTokens');
 // Register user
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, phone, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'User already exists with this email' 
+      });
     }
 
     // Hash password
@@ -24,6 +27,7 @@ const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
+      phone,
       password: hashedPassword
     });
 
@@ -32,12 +36,16 @@ const register = async (req, res) => {
     await sendOTPEmail(email, otp, name);
 
     res.status(201).json({
+      success: true,
       message: 'User registered successfully. Please check your email for verification code.',
       userId: user.id
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during registration' 
+    });
   }
 };
 
@@ -49,26 +57,41 @@ const verifyEmail = async (req, res) => {
     // Find user
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
 
     if (user.verified) {
-      return res.status(400).json({ message: 'Email is already verified' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email is already verified' 
+      });
     }
 
     // Verify OTP
     const isValid = await verifyOTP(user.id, otp);
     if (!isValid) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid or expired OTP' 
+      });
     }
 
     // Mark user as verified
     await User.verify(user.id);
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({ 
+      success: true,
+      message: 'Email verified successfully' 
+    });
   } catch (error) {
     console.error('Verification error:', error);
-    res.status(500).json({ message: 'Server error during verification' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during verification' 
+    });
   }
 };
 
@@ -80,18 +103,27 @@ const login = async (req, res) => {
     // Find user
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid credentials' 
+      });
     }
 
     // Check if user is verified
     if (!user.verified) {
-      return res.status(400).json({ message: 'Please verify your email first' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please verify your email first' 
+      });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid credentials' 
+      });
     }
 
     // Generate JWT token
@@ -102,6 +134,7 @@ const login = async (req, res) => {
     );
 
     res.json({
+      success: true,
       message: 'Login successful',
       token,
       user: {
@@ -112,7 +145,10 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during login' 
+    });
   }
 };
 
@@ -124,21 +160,33 @@ const resendOTP = async (req, res) => {
     // Find user
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
 
     if (user.verified) {
-      return res.status(400).json({ message: 'Email is already verified' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email is already verified' 
+      });
     }
 
     // Generate and send new OTP
     const otp = await createOTP(user.id);
     await sendOTPEmail(email, otp, user.name);
 
-    res.json({ message: 'New OTP sent successfully' });
+    res.json({ 
+      success: true,
+      message: 'New OTP sent successfully' 
+    });
   } catch (error) {
     console.error('Resend OTP error:', error);
-    res.status(500).json({ message: 'Server error while resending OTP' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while resending OTP' 
+    });
   }
 };
 
@@ -154,10 +202,16 @@ const logout = async (req, res) => {
     // Add token to blacklist
     await BlacklistedToken.add(token, expiresAt);
     
-    res.json({ message: 'Logged out successfully' });
+    res.json({ 
+      success: true,
+      message: 'Logged out successfully' 
+    });
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({ message: 'Server error during logout' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during logout' 
+    });
   }
 };
 

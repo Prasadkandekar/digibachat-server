@@ -40,7 +40,12 @@ const forgotPassword = async (req, res) => {
 // Reset password - validate token and update password
 const resetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const { token, newPassword, confirmPassword } = req.body;
+
+    // Validate password confirmation
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
 
     // Find valid token
     const resetToken = await PasswordResetToken.findValidToken(token);
@@ -50,7 +55,7 @@ const resetPassword = async (req, res) => {
 
     // Hash new password
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update user password
     await User.updatePassword(resetToken.user_id, hashedPassword);

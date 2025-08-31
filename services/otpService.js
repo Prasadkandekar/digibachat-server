@@ -7,7 +7,7 @@ const generateOTP = () => {
 //Create and save OTP
 const createOTP = async (userId)=>{
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() +process.env.OTP_EXPIRY_MINUTES*60*1000);
+    const expiresAt = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
 
     await OTP.create(userId,otp,expiresAt);
     return otp;

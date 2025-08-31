@@ -1,7 +1,7 @@
 const validateRegistration = (req, res, next) => {
-  const { name, email, password } = req.body;
+  const { name, email, phone, password } = req.body;
   
-  if (!name || !email || !password) {
+  if (!name || !email || !phone || !password) {
     return res.status(400).json({ message: 'All fields are required' });
   }
   
@@ -11,6 +11,10 @@ const validateRegistration = (req, res, next) => {
   
   if (!/\S+@\S+\.\S+/.test(email)) {
     return res.status(400).json({ message: 'Please provide a valid email' });
+  }
+
+  if (!/^\d{10}$/.test(phone)) {
+    return res.status(400).json({ message: 'Please provide a valid 10-digit phone number' });
   }
   
   next();
@@ -41,17 +45,17 @@ const validateOTP = (req, res, next) => {
 };
 
 const validatePasswordReset = (req, res, next) => {
-  const { password, confirmPassword } = req.body;
+  const { newPassword, confirmPassword } = req.body;
   
-  if (!password || !confirmPassword) {
+  if (!newPassword || !confirmPassword) {
     return res.status(400).json({ message: 'All fields are required' });
   }
   
-  if (password.length < 6) {
+  if (newPassword.length < 6) {
     return res.status(400).json({ message: 'Password must be at least 6 characters' });
   }
   
-  if (password !== confirmPassword) {
+  if (newPassword !== confirmPassword) {
     return res.status(400).json({ message: 'Passwords do not match' });
   }
   

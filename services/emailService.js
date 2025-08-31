@@ -13,6 +13,13 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendOTPEmail = async (email, otp, name) => {
+  // Check if email configuration is available
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('Email configuration missing, skipping email send');
+    console.log(`OTP for ${email}: ${otp}`);
+    return; // Don't throw error, just log the OTP
+  }
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
@@ -37,13 +44,16 @@ const sendOTPEmail = async (email, otp, name) => {
     console.log(`OTP email sent to ${email}`);
   } catch (error) {
     console.error('Error sending email:', error);
-    throw new Error('Failed to send OTP email');
+    // Log OTP in console for development purposes
+    console.log(`OTP for ${email}: ${otp}`);
+    // Don't throw error to prevent registration failure
+    console.warn('Email sending failed, but OTP is logged above');
   }
 };
 
 // Send password reset email
 const sendPasswordResetEmail = async (email, resetToken, name) => {
-  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
   
   const mailOptions = {
     from: process.env.EMAIL_USER,

@@ -2,16 +2,16 @@ const pool = require('../config/neondb');
 
 const  User = {
     create: async (userData) =>{
-        const { name , email , password} = userData;
+        const { name , email , phone, password} = userData;
 
         const query =`
         
-        INSERT INTO users(name,email,password)
-        VALUES($1,$2,$3)
-        RETURNING id,name,email,created_at
+        INSERT INTO users(name,email,phone,password)
+        VALUES($1,$2,$3,$4)
+        RETURNING id,name,email,phone,created_at
         `;
 
-        const values = [name,email,password];
+        const values = [name,email,phone,password];
         const {rows} = await pool.query(query,values);
         return rows[0];
     },
