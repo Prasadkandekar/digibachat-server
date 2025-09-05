@@ -24,7 +24,7 @@ app.use(helmet());
 // }));
 // Allow specific origins with credentials
 app.use(cors({
-  origin: 'http://localhost:5173', // Your Vite frontend URL
+  origin: 'https://digibachat.vercel.app', // Your Vite frontend URL
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
@@ -36,9 +36,19 @@ app.options('*', cors());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests
+  standardHeaders: true, // add RateLimit-* headers
+  legacyHeaders: false,  // disable X-RateLimit-* headers
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json({
+      success: false,
+      message: "Too many requests, please try again later.",
+      retryAfter: Math.ceil(options.windowMs / 1000) // in seconds
+    });
+  }
 });
 app.use(limiter);
+
 // Allow credentials in CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
