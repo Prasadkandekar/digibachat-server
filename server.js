@@ -24,14 +24,16 @@ app.use(helmet());
 // }));
 // Allow specific origins with credentials
 app.use(cors({
-  origin: 'https://digibachat.vercel.app', // Your Vite frontend URL
+  origin: ["https://digibachat.vercel.app"], // whitelist array works better
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-// Handle preflight requests
-app.options('*', cors());
+// explicitly handle preflight
+app.options("*", cors());
+
+
 
 // Rate limiting
 const limiter = rateLimit({
