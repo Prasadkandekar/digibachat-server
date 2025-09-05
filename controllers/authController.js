@@ -280,4 +280,36 @@ const logout = async (req, res) => {
   }
 };
 
-module.exports = { register, verifyEmail, login, resendOTP, logout };
+// Get current user
+const getCurrentUser = async (req, res) => {
+  try {
+    // User is attached to req by auth middleware
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user data'
+    });
+  }
+};
+
+module.exports = { register, verifyEmail, login, resendOTP, logout, getCurrentUser };

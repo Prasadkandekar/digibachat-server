@@ -6,7 +6,7 @@ const {
   login,
   resendOTP,
   logout,
-  logoutAll
+  getCurrentUser
 } = require('../controllers/authController');
 const {
   validateRegistration,
@@ -28,5 +28,8 @@ router.post('/resend-otp', resendOTP);
 
 // Logout route (requires authentication)
 router.post('/logout', auth, logout);
+
+// Get current user route (requires authentication)
+router.get('/me', auth, getCurrentUser);
 
 module.exports = router;

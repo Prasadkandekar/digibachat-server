@@ -37,6 +37,13 @@ const  User = {
     const query = `UPDATE users SET password = $1 WHERE id = $2 RETURNING id, name,email`;
     const {rows} = await pool.query(query,[password,id]);
     return rows[0];
+  },
+
+  // Find user by ID
+  findById: async (id) => {
+    const query = 'SELECT id, name, email, phone, verified, created_at FROM users WHERE id = $1';
+    const { rows } = await pool.query(query, [id]);
+    return rows[0];
   }
 };
 

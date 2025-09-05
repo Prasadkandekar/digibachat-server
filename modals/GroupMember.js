@@ -26,9 +26,18 @@ class GroupMember {
 
   static async findByGroupId(groupId, status = null) {
     let query = `
-      SELECT gm.*, u.name, u.email, u.phone
+      SELECT 
+        gm.id,
+        gm.group_id,
+        gm.user_id,
+        gm.role,
+        gm.status,
+        gm.joined_at,
+        gm.current_balance,
+        u.name as user_name,
+        u.email as user_email
       FROM group_members gm
-      LEFT JOIN users u ON gm.user_id = u.id
+      JOIN users u ON gm.user_id = u.id
       WHERE gm.group_id = $1
     `;
     
