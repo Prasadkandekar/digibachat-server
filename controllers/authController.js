@@ -126,19 +126,27 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate JWT token
+    // Generate JWT token - For PostgreSQL, use user.id (not user._id)
     const token = jwt.sign(
-      { id: user.id },
+      { 
+        id: user.id, // PostgreSQL uses 'id' field, not '_id'
+        email: user.email 
+      },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      { 
+        expiresIn: process.env.JWT_EXPIRE || '24h'
+      }
     );
+
+    console.log('Generated token for user ID:', user.id);
+    console.log('Token preview:', token.substring(0, 20) + '...');
 
     res.json({
       success: true,
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
+        id: user.id, 
         name: user.name,
         email: user.email
       }
@@ -151,6 +159,63 @@ const login = async (req, res) => {
     });
   }
 };
+
+// Login user
+// const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // Find user
+//     const user = await User.findByEmail(email);
+//     if (!user) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'Invalid credentials' 
+//       });
+//     }
+
+//     // Check if user is verified
+//     if (!user.verified) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'Please verify your email first' 
+//       });
+//     }
+
+//     // Check password
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'Invalid credentials' 
+//       });
+//     }
+
+//     // Generate JWT token
+//     const token = jwt.sign(
+//       { id: user.id },
+//       process.env.JWT_SECRET,
+//       { expiresIn: process.env.JWT_EXPIRE }
+//     );
+
+//     res.json({
+//       success: true,
+//       message: 'Login successful',
+//       token,
+//       user: {
+//         id: user.id,
+//         name: user.name,
+//         email: user.email
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     res.status(500).json({ 
+//       success: false,
+//       message: 'Server error during login' 
+//     });
+//   }
+// };
 
 // Resend OTP
 const resendOTP = async (req, res) => {

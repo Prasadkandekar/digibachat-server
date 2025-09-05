@@ -7,41 +7,36 @@ const {
   getJoinRequests,
   approveJoinRequest,
   rejectJoinRequest,
-  removeMember,
-  leaveGroup,
-  getUserGroups
+  getUserGroups,
+  getLeaderGroups,
+  getGroupByCode,
+  getGroupMembers,
+  debugJoinRequests,
+  debugJoinRequestsNoAuth
 } = require('../controllers/groupController');
+const transactionController = require('../controllers/transactionController');
 const auth = require('../middleware/authmiddleware');
-const { isGroupLeader, isGroupMember } = require('../middleware/groupAuth');
 
-// All routes require authentication
+// Public routes
+router.get('/public/:groupCode', getGroupByCode);
+router.get('/:groupId/debug-join-requests-no-auth', debugJoinRequestsNoAuth);
+
+// Protected routes
 router.use(auth);
 
-// Create group
 router.post('/', createGroup);
-
-// Get user's groups
 router.get('/my-groups', getUserGroups);
-
-// Join group using code
+router.get('/my-leader-groups', getLeaderGroups);
+router.get('/:groupId', getGroup);
+router.get('/:groupId/members', getGroupMembers);
 router.post('/join/:groupCode', joinGroup);
+router.get('/:groupId/join-requests', getJoinRequests);
+router.get('/:groupId/debug-join-requests', debugJoinRequests);
+router.post('/:groupId/join-requests/:requestId/approve', approveJoinRequest);
+router.post('/:groupId/join-requests/:requestId/reject', rejectJoinRequest);
 
-// Get group details (members only)
-router.get('/:groupId', isGroupMember, getGroup);
-
-// Get join requests (leaders only)
-router.get('/:groupId/join-requests', isGroupLeader, getJoinRequests);
-
-// Approve join request (leaders only)
-router.post('/:groupId/join-requests/:requestId/approve', isGroupLeader, approveJoinRequest);
-
-// Reject join request (leaders only)
-router.post('/:groupId/join-requests/:requestId/reject', isGroupLeader, rejectJoinRequest);
-
-// Remove member (leaders only)
-router.delete('/:groupId/members/:userId', isGroupLeader, removeMember);
-
-// Leave group (members only)
-router.delete('/:groupId/leave', isGroupMember, leaveGroup);
+// Contribution routes
+router.post('/:groupId/contribute', transactionController.makeContribution);
+router.get('/:groupId/transactions', transactionController.getGroupTransactions);
 
 module.exports = router;
