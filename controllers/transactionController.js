@@ -68,6 +68,15 @@ const transactionController = {
             `;
             await db.query(updateBalanceQuery, [group.savings_amount, groupId, userId]);
 
+            // Update group's total savings
+            const updateGroupSavingsQuery = `
+                UPDATE groups
+                SET total_savings = total_savings + $1
+                WHERE id = $2
+                RETURNING total_savings;
+            `;
+            await db.query(updateGroupSavingsQuery, [group.savings_amount, groupId]);
+
             res.json({
                 success: true,
                 message: 'Contribution processed successfully',
@@ -344,6 +353,46 @@ const transactionController = {
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch user total savings'
+            });
+        }
+    },
+
+    // Get user contributions across all groups
+    getUserContributions: async (req, res) => {
+        try {
+            const userId = req.user.id;
+
+            // Get user's contributions by group
+            const contributionsQuery = `
+                SELECT 
+                    g.id as group_id,
+                    g.name as group_name,
+                    COALESCE(SUM(t.amount), 0) as total_amount,
+                    COUNT(t.id) as contributions_count
+                FROM groups g
+                JOIN group_members gm ON g.id = gm.group_id
+                LEFT JOIN transactions t ON t.user_id = $1 AND t.group_id = g.id AND t.type = 'deposit' AND t.status = 'completed'
+                WHERE gm.user_id = $1 AND gm.status = 'approved'
+                GROUP BY g.id, g.name
+                ORDER BY g.name
+            `;
+            const contributionsResult = await db.query(contributionsQuery, [userId]);
+
+            res.json({
+                success: true,
+                data: {
+                    contributions: contributionsResult.rows.map(row => ({
+                        ...row,
+                        total_amount: parseFloat(row.total_amount)
+                    }))
+                }
+            });
+
+        } catch (error) {
+            console.error('Get user contributions error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch user contributions'
             });
         }
     }

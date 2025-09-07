@@ -87,6 +87,26 @@ CREATE TABLE blacklisted_tokens (
     expires_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Loan Requests table
+CREATE TABLE loan_requests (
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER REFERENCES groups(id),
+    user_id INTEGER REFERENCES users(id),
+    amount DECIMAL(10, 2) NOT NULL,
+    purpose TEXT NOT NULL,
+    requested_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'paid', 'overdue')),
+    approved_by INTEGER REFERENCES users(id),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    due_date TIMESTAMP WITH TIME ZONE,
+    interest_rate DECIMAL(5, 2),
+    penalty_rate DECIMAL(5, 2) DEFAULT 0,
+    penalty_amount DECIMAL(10, 2) DEFAULT 0,
+    repayment_status VARCHAR(20) DEFAULT 'pending' CHECK (repayment_status IN ('pending', 'partial', 'completed')),
+    repaid_amount DECIMAL(10, 2) DEFAULT 0,
+    last_repayment_date TIMESTAMP WITH TIME ZONE
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_group_id ON transactions(group_id);
@@ -97,3 +117,7 @@ CREATE INDEX idx_join_requests_status ON join_requests(status);
 CREATE INDEX idx_otps_email ON otps(email);
 CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
 CREATE INDEX idx_blacklisted_tokens_token ON blacklisted_tokens(token);
+CREATE INDEX idx_loan_requests_user_id ON loan_requests(user_id);
+CREATE INDEX idx_loan_requests_group_id ON loan_requests(group_id);
+CREATE INDEX idx_loan_requests_status ON loan_requests(status);
+CREATE INDEX idx_loan_requests_due_date ON loan_requests(due_date);

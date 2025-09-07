@@ -12,6 +12,7 @@ const PasswordResetToken = require('./modals/PasswordResetToken');
 const BlacklistedToken = require('./modals/BlackListedTokens');
 const groupRoutes = require('./routes/groupRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const loanRoutes = require('./routes/loanRoutes');
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.use(helmet());
 // }));
 // Allow specific origins with credentials
 app.use(cors({
-  origin: ["https://digibachat.vercel.app"], // whitelist array works better
+  origin: ["https://digibachat.vercel.app","http://localhost:5173","http://localhost:5174"], // whitelist array works better
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -36,20 +37,20 @@ app.options("*", cors());
 
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests
-  standardHeaders: true, // add RateLimit-* headers
-  legacyHeaders: false,  // disable X-RateLimit-* headers
-  handler: (req, res, next, options) => {
-    res.status(options.statusCode).json({
-      success: false,
-      message: "Too many requests, please try again later.",
-      retryAfter: Math.ceil(options.windowMs / 1000) // in seconds
-    });
-  }
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests
+//   standardHeaders: true, // add RateLimit-* headers
+//   legacyHeaders: false,  // disable X-RateLimit-* headers
+//   handler: (req, res, next, options) => {
+//     res.status(options.statusCode).json({
+//       success: false,
+//       message: "Too many requests, please try again later.",
+//       retryAfter: Math.ceil(options.windowMs / 1000) // in seconds
+//     });
+//   }
+// });
+// app.use(limiter);
 
 // Allow credentials in CORS
 app.use((req, res, next) => {
@@ -65,6 +66,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/password',passwordRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/loans', loanRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

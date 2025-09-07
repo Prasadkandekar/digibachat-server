@@ -24,4 +24,7 @@ router.get('/groups/:groupId/savings-summary', transactionController.getGroupSav
 // Get user total savings across all groups
 router.get('/user/total-savings', transactionController.getUserTotalSavings);
 
+// Get user contributions across all groups
+router.get('/user/contributions', transactionController.getUserContributions);
+
 module.exports = router;
