@@ -79,10 +79,14 @@ class Group {
 
   static async findByUserId(userId) {
     const query = `
-      SELECT g.*, gm.role, gm.status as member_status, gm.joined_at
+      SELECT g.*, 
+        gm.role,
+        gm.status as member_status, 
+        gm.joined_at
       FROM groups g
       INNER JOIN group_members gm ON g.id = gm.group_id
-      WHERE gm.user_id = $1 AND gm.status = 'approved'
+      WHERE gm.user_id = $1
+        AND gm.status = 'approved'
       ORDER BY gm.joined_at DESC
     `;
     const result = await pool.query(query, [userId]);
@@ -91,10 +95,15 @@ class Group {
 
   static async findByUserIdAndRole(userId, role) {
     const query = `
-      SELECT g.*, gm.role, gm.status as member_status, gm.joined_at
+      SELECT g.*, 
+        gm.role,
+        gm.status as member_status, 
+        gm.joined_at
       FROM groups g
       INNER JOIN group_members gm ON g.id = gm.group_id
-      WHERE gm.user_id = $1 AND gm.role = $2 AND gm.status = 'approved'
+      WHERE gm.user_id = $1 
+        AND gm.status = 'approved'
+        AND (gm.role = $2 OR $2 = 'member')
       ORDER BY gm.joined_at DESC
     `;
     const result = await pool.query(query, [userId, role]);

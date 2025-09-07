@@ -74,12 +74,12 @@ const loanController = {
       }
 
       // Get loan requests
-      const loanRequests = await Loan.findByGroupId(groupId, status);
+      const loans = await Loan.findByGroupId(groupId, status);
 
       res.json({
         success: true,
         data: {
-          loanRequests
+          loans
         }
       });
     } catch (error) {
@@ -98,14 +98,12 @@ const loanController = {
       const userId = req.user.id;
       const { status } = req.query;
 
-      // Get loan requests
-      const loanRequests = await Loan.findByUserId(userId, status);
+      // Get user's loan requests
+      const loans = await Loan.findByUserId(userId, status);
 
       res.json({
         success: true,
-        data: {
-          loanRequests
-        }
+        data: loans
       });
     } catch (error) {
       console.error('Get user loan requests error:', error);
@@ -175,7 +173,7 @@ const loanController = {
       );
 
       // Create a transaction record for the loan
-      const transaction = await Transaction.create({
+      const transactionData = {
         group_id: groupId,
         user_id: loanRequest.user_id,
         amount: loanRequest.amount,
@@ -183,8 +181,10 @@ const loanController = {
         payment_method: paymentMethod,
         transaction_reference: generateTransactionReference(),
         description: `Loan approved for ${loanRequest.purpose}`,
-        due_date: new Date(dueDate)
-      });
+        due_date: dueDate ? new Date(dueDate) : null
+      };
+      
+      const transaction = await Transaction.create(transactionData);
 
       // Update transaction status to completed
       await Transaction.updateStatus(transaction.id, 'completed');

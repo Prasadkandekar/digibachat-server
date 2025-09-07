@@ -23,17 +23,6 @@ CREATE TABLE groups (
     created_by INTEGER REFERENCES users(id)
 );
 
--- Group Members table
-CREATE TABLE group_members (
-    id SERIAL PRIMARY KEY,
-    group_id INTEGER REFERENCES groups(id),
-    user_id INTEGER REFERENCES users(id),
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    is_leader BOOLEAN DEFAULT FALSE,
-    current_balance DECIMAL(10, 2) DEFAULT 0,
-    UNIQUE(group_id, user_id)
-);
-
 -- Join Requests table
 CREATE TABLE join_requests (
     id SERIAL PRIMARY KEY,

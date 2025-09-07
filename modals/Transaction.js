@@ -14,12 +14,21 @@ const Transaction = {
             due_date
         } = transactionData;
 
+        // Only include due_date in the query if it's provided
+        const includeDueDate = due_date !== undefined;
+        const columns = [
+            'group_id', 'user_id', 'amount', 'type', 'payment_method',
+            'transaction_reference', 'description'
+        ];
+        
+        if (includeDueDate) {
+            columns.push('due_date');
+        }
+
+        const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
         const query = `
-            INSERT INTO transactions (
-                group_id, user_id, amount, type, payment_method, 
-                transaction_reference, description, due_date
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO transactions (${columns.join(', ')})
+            VALUES (${placeholders})
             RETURNING *
         `;
 
@@ -30,9 +39,12 @@ const Transaction = {
             type,
             payment_method,
             transaction_reference,
-            description,
-            due_date
+            description
         ];
+        
+        if (includeDueDate) {
+            values.push(due_date);
+        }
 
         const result = await db.query(query, values);
         return result.rows[0];
