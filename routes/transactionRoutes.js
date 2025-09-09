@@ -27,4 +27,10 @@ router.get('/user/total-savings', transactionController.getUserTotalSavings);
 // Get user contributions across all groups
 router.get('/user/contributions', transactionController.getUserContributions);
 
+// UPI Payment routes
+router.post('/groups/:groupId/upi-payment', transactionController.generateUPIPayment);
+router.get('/transactions/:transactionId/verify-upi', transactionController.verifyUPIPayment);
+router.put('/groups/:groupId/upi-details', transactionController.updateGroupUPIDetails);
+router.post('/transactions/:transactionId/complete-upi', transactionController.completeUPIPayment);
+
 module.exports = router;

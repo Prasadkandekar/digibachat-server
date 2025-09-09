@@ -20,7 +20,10 @@ CREATE TABLE groups (
     savings_amount DECIMAL(10, 2) NOT NULL,
     interest_rate DECIMAL(5, 2) DEFAULT 0,
     default_loan_duration INTEGER DEFAULT 30,
-    created_by INTEGER REFERENCES users(id)
+    created_by INTEGER REFERENCES users(id),
+    leader_upi_id VARCHAR(255),
+    leader_upi_name VARCHAR(255),
+    total_savings DECIMAL(10, 2) DEFAULT 0
 );
 
 -- Join Requests table
@@ -39,13 +42,17 @@ CREATE TABLE transactions (
     group_id INTEGER REFERENCES groups(id),
     user_id INTEGER REFERENCES users(id),
     amount DECIMAL(10, 2) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('contribution', 'loan', 'repayment', 'withdrawal')),
+    type VARCHAR(20) NOT NULL CHECK (type IN ('deposit', 'loan', 'repayment', 'withdrawal')),
     payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('upi', 'bank_transfer')),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed')),
     transaction_reference VARCHAR(50) UNIQUE,
     payment_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     due_date TIMESTAMP WITH TIME ZONE,
-    description TEXT
+    description TEXT,
+    upi_transaction_id VARCHAR(255),
+    upi_payment_link TEXT,
+    qr_code_url TEXT,
+    upi_status VARCHAR(20) DEFAULT 'pending' CHECK (upi_status IN ('pending', 'initiated', 'completed', 'failed', 'cancelled'))
 );
 
 -- OTP table
@@ -96,9 +103,23 @@ CREATE TABLE loan_requests (
     last_repayment_date TIMESTAMP WITH TIME ZONE
 );
 
+-- UPI Payment Verification table
+CREATE TABLE upi_payment_verifications (
+    id SERIAL PRIMARY KEY,
+    transaction_id INTEGER REFERENCES transactions(id),
+    upi_transaction_id VARCHAR(255) UNIQUE NOT NULL,
+    verification_status VARCHAR(20) DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'failed')),
+    verification_attempts INTEGER DEFAULT 0,
+    last_verification_attempt TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    verified_at TIMESTAMP WITH TIME ZONE
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_group_id ON transactions(group_id);
+CREATE INDEX idx_transactions_upi_transaction_id ON transactions(upi_transaction_id);
+CREATE INDEX idx_transactions_upi_status ON transactions(upi_status);
 CREATE INDEX idx_group_members_user_id ON group_members(user_id);
 CREATE INDEX idx_group_members_group_id ON group_members(group_id);
 CREATE INDEX idx_join_requests_group_id ON join_requests(group_id);
@@ -110,3 +131,6 @@ CREATE INDEX idx_loan_requests_user_id ON loan_requests(user_id);
 CREATE INDEX idx_loan_requests_group_id ON loan_requests(group_id);
 CREATE INDEX idx_loan_requests_status ON loan_requests(status);
 CREATE INDEX idx_loan_requests_due_date ON loan_requests(due_date);
+CREATE INDEX idx_upi_verifications_transaction_id ON upi_payment_verifications(transaction_id);
+CREATE INDEX idx_upi_verifications_upi_transaction_id ON upi_payment_verifications(upi_transaction_id);
+CREATE INDEX idx_upi_verifications_status ON upi_payment_verifications(verification_status);

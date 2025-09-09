@@ -1,5 +1,6 @@
 const db = require('../config/neondb');
 const { generateTransactionReference } = require('../services/transactionService');
+const UPIService = require('../services/upiService');
 
 const transactionController = {
     // Make a contribution to a group
@@ -393,6 +394,316 @@ const transactionController = {
             res.status(500).json({
                 success: false,
                 message: 'Failed to fetch user contributions'
+            });
+        }
+    },
+
+    // Generate UPI payment link for group contribution
+    generateUPIPayment: async (req, res) => {
+        try {
+            const { groupId } = req.params;
+            const userId = req.user.id;
+
+            // Verify group membership
+            const membershipQuery = `
+                SELECT * FROM group_members
+                WHERE group_id = $1 AND user_id = $2
+            `;
+            const membershipResult = await db.query(membershipQuery, [groupId, userId]);
+            const membership = membershipResult.rows[0];
+
+            if (!membership) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not a member of this group'
+                });
+            }
+
+            // Get group details and leader information
+            const groupQuery = `
+                SELECT g.*, u.name as leader_name, u.email as leader_email
+                FROM groups g
+                LEFT JOIN users u ON g.created_by = u.id
+                WHERE g.id = $1
+            `;
+            const groupResult = await db.query(groupQuery, [groupId]);
+            const group = groupResult.rows[0];
+
+            if (!group) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Group not found'
+                });
+            }
+
+            // Check if group leader has UPI ID configured
+            if (!group.leader_upi_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Group leader has not configured UPI payment details'
+                });
+            }
+
+            // Get member name
+            const memberQuery = `SELECT name FROM users WHERE id = $1`;
+            const memberResult = await db.query(memberQuery, [userId]);
+            const memberName = memberResult.rows[0]?.name || 'Member';
+
+            // Generate UPI payment data
+            const upiData = UPIService.createGroupContributionUPI({
+                groupLeaderUPI: group.leader_upi_id,
+                groupLeaderName: group.leader_upi_name || group.leader_name,
+                amount: group.savings_amount,
+                groupName: group.name,
+                memberName: memberName
+            });
+
+            // Generate QR code
+            const qrCodeDataURL = await UPIService.generateQRCode(upiData.upiLink);
+
+            // Create transaction record with pending status
+            const transactionQuery = `
+                INSERT INTO transactions (
+                    group_id, user_id, amount, type, payment_method,
+                    transaction_reference, status, description,
+                    upi_transaction_id, upi_payment_link, qr_code_url, upi_status
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                RETURNING *
+            `;
+
+            const transactionValues = [
+                groupId,
+                userId,
+                group.savings_amount,
+                'deposit',
+                'upi',
+                generateTransactionReference(),
+                'pending',
+                upiData.note,
+                upiData.upiTransactionId,
+                upiData.upiLink,
+                qrCodeDataURL,
+                'initiated'
+            ];
+
+            const transactionResult = await db.query(transactionQuery, transactionValues);
+            const transaction = transactionResult.rows[0];
+
+            res.json({
+                success: true,
+                message: 'UPI payment link generated successfully',
+                data: {
+                    transactionId: transaction.id,
+                    upiTransactionId: upiData.upiTransactionId,
+                    upiLink: upiData.upiLink,
+                    qrCode: qrCodeDataURL,
+                    amount: transaction.amount,
+                    groupName: group.name,
+                    leaderName: group.leader_upi_name || group.leader_name,
+                    note: upiData.note
+                }
+            });
+
+        } catch (error) {
+            console.error('Generate UPI payment error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to generate UPI payment link'
+            });
+        }
+    },
+
+    // Verify UPI payment status
+    verifyUPIPayment: async (req, res) => {
+        try {
+            const { transactionId } = req.params;
+            const userId = req.user.id;
+
+            // Get transaction details
+            const transactionQuery = `
+                SELECT t.*, g.name as group_name
+                FROM transactions t
+                JOIN groups g ON t.group_id = g.id
+                WHERE t.id = $1 AND t.user_id = $2
+            `;
+            const transactionResult = await db.query(transactionQuery, [transactionId, userId]);
+            const transaction = transactionResult.rows[0];
+
+            if (!transaction) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Transaction not found'
+                });
+            }
+
+            // Return current status without auto-completing
+            // In a real implementation, you would integrate with UPI payment gateway APIs
+            // and verify payment status through webhooks or API calls
+
+            res.json({
+                success: true,
+                data: {
+                    transactionId: transaction.id,
+                    status: transaction.status,
+                    upiStatus: transaction.upi_status,
+                    amount: transaction.amount,
+                    groupName: transaction.group_name,
+                    paymentDate: transaction.created_at
+                }
+            });
+
+        } catch (error) {
+            console.error('Verify UPI payment error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to verify UPI payment'
+            });
+        }
+    },
+
+    // Update group leader UPI details
+    updateGroupUPIDetails: async (req, res) => {
+        try {
+            const { groupId } = req.params;
+            const { upiId, upiName } = req.body;
+            const userId = req.user.id;
+
+            // Verify user is group leader
+            const membershipQuery = `
+                SELECT role FROM group_members
+                WHERE group_id = $1 AND user_id = $2 AND status = 'approved'
+            `;
+            const membershipResult = await db.query(membershipQuery, [groupId, userId]);
+            const membership = membershipResult.rows[0];
+
+            if (!membership || membership.role !== 'leader') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only group leaders can update UPI details'
+                });
+            }
+
+            // Validate UPI ID format
+            if (!UPIService.validateUPIId(upiId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid UPI ID format'
+                });
+            }
+
+            // Update group UPI details
+            const updateQuery = `
+                UPDATE groups 
+                SET leader_upi_id = $1, leader_upi_name = $2
+                WHERE id = $3
+                RETURNING *
+            `;
+            const updateResult = await db.query(updateQuery, [upiId, upiName, groupId]);
+
+            res.json({
+                success: true,
+                message: 'UPI details updated successfully',
+                data: {
+                    upiId: updateResult.rows[0].leader_upi_id,
+                    upiName: updateResult.rows[0].leader_upi_name
+                }
+            });
+
+        } catch (error) {
+            console.error('Update UPI details error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to update UPI details'
+            });
+        }
+    },
+
+    // Manually verify and complete UPI payment (for group leaders or payment initiator)
+    completeUPIPayment: async (req, res) => {
+        try {
+            const { transactionId } = req.params;
+            const userId = req.user.id;
+
+            // Get transaction details
+            const transactionQuery = `
+                SELECT t.*, g.name as group_name, g.created_by
+                FROM transactions t
+                JOIN groups g ON t.group_id = g.id
+                WHERE t.id = $1
+            `;
+            const transactionResult = await db.query(transactionQuery, [transactionId]);
+            const transaction = transactionResult.rows[0];
+
+            if (!transaction) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Transaction not found'
+                });
+            }
+
+            // Check if user is the group leader OR the person who initiated the payment
+            const isGroupLeader = transaction.created_by === userId;
+            const isPaymentInitiator = transaction.user_id === userId;
+            
+            if (!isGroupLeader && !isPaymentInitiator) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only group leaders or payment initiators can verify payments'
+                });
+            }
+
+            // Check if payment is already completed
+            if (transaction.status === 'completed') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Payment is already completed'
+                });
+            }
+
+            // Update transaction status to completed
+            await db.query('BEGIN');
+            
+            // Update transaction status
+            await db.query(`
+                UPDATE transactions 
+                SET status = 'completed', upi_status = 'completed'
+                WHERE id = $1
+            `, [transactionId]);
+
+            // Update member's contribution record
+            await db.query(`
+                UPDATE group_members
+                SET current_balance = current_balance + $1
+                WHERE group_id = $2 AND user_id = $3
+            `, [transaction.amount, transaction.group_id, transaction.user_id]);
+
+            // Update group's total savings
+            await db.query(`
+                UPDATE groups
+                SET total_savings = total_savings + $1
+                WHERE id = $2
+            `, [transaction.amount, transaction.group_id]);
+
+            await db.query('COMMIT');
+
+            res.json({
+                success: true,
+                message: 'Payment verified and completed successfully',
+                data: {
+                    transactionId: transaction.id,
+                    amount: transaction.amount,
+                    groupName: transaction.group_name,
+                    status: 'completed'
+                }
+            });
+
+        } catch (error) {
+            await db.query('ROLLBACK');
+            console.error('Complete UPI payment error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to complete payment verification'
             });
         }
     }

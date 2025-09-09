@@ -57,7 +57,7 @@ const Transaction = {
             FROM transactions t
             JOIN groups g ON t.group_id = g.id
             WHERE t.user_id = $1
-            ORDER BY t.payment_date DESC
+            ORDER BY t.created_at DESC
         `;
         const result = await db.query(query, [userId]);
         return result.rows;
@@ -70,7 +70,7 @@ const Transaction = {
             FROM transactions t
             JOIN users u ON t.user_id = u.id
             WHERE t.group_id = $1
-            ORDER BY t.payment_date DESC
+            ORDER BY t.created_at DESC
         `;
         const result = await db.query(query, [groupId]);
         return result.rows;
