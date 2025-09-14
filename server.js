@@ -24,7 +24,7 @@ const allowedOrigins = [
   "https://digibachat.vercel.app",
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://digibachat-server.appwrite.network"
+ 
 ];
 
 app.use(cors({
